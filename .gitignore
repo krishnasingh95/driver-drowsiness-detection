@@ -1,0 +1,14 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Local logs
+logs/*.csv
+
+# Local song file
+funny_munni.mp3
