@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DrowsyGuard AI – Driver Drowsiness Detection System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════
+       MAIN APPLICATION SHELL (SIDEBAR + CONTENT)
+  ══════════════════════════════════════════════════ -->
+  <div class="app-container">
+
+    <!-- ── LEFT NAVIGATION SIDEBAR ─────────────────────── -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon-wrap">
+          <span class="brand-icon">🚗</span>
+        </div>
+        <div class="brand-info">
+          <span class="brand-title">DrowsyGuard</span>
+          <span class="brand-sub">AI Driver Safety Monitor</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-section-label">Core Modules</div>
+        <button class="nav-btn active" data-screen="screen-cockpit">
+          <span class="nav-icon">📹</span>
+          <span class="nav-text">Live Cockpit</span>
+          <span class="nav-status-dot normal"></span>
+        </button>
+
+        <button class="nav-btn" data-screen="screen-calibration">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-text">Eye Calibration</span>
+          <span class="nav-pill" id="sidebarCalPill">Ready</span>
+        </button>
+
+        <button class="nav-btn" data-screen="screen-simulator">
+          <span class="nav-icon">🧠</span>
+          <span class="nav-text">AI Lab &amp; Simulator</span>
+          <span class="nav-pill accent">ML</span>
+        </button>
+
+        <button class="nav-btn" data-screen="screen-telemetry">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">Live Telemetry</span>
+        </button>
+
+        <div class="nav-section-label">Records &amp; Viva</div>
+        <button class="nav-btn" data-screen="screen-logs">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">Incident Logs</span>
+          <span class="nav-pill danger" id="sidebarAlertCount">0</span>
+        </button>
+
+        <button class="nav-btn" data-screen="screen-viva">
+          <span class="nav-icon">🎓</span>
+          <span class="nav-text">Viva &amp; Architecture</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Audio Quick Control -->
+      <div class="sidebar-audio-card">
+        <div class="audio-card-header">
+          <span class="audio-card-icon" id="audioWaveIcon">🎵</span>
+          <div class="audio-card-text">
+            <strong>Alert Song</strong>
+            <small id="audioTrackName">funny_munni.mp3</small>
+          </div>
+        </div>
+        <div class="audio-card-controls">
+          <button class="btn-audio-test" id="sidebarTestBtn" onclick="toggleTestAudio()">
+            ▶ Test Alert Song
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <span>B.Tech AI/ML Mini Project</span>
+        <small>Academic Prototype</small>
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT AREA ───────────────────────────── -->
+    <div class="content-wrapper">
+
+      <!-- TOP HEADER BAR -->
+      <header class="top-header">
+        <div class="header-left">
+          <h2 id="currentScreenTitle">Live Cockpit Monitor</h2>
+          <span class="header-breadcrumb" id="headerBreadcrumb">Safety Cockpit &bull; Real-time Camera</span>
+        </div>
+
+        <div class="header-right">
+          <!-- Live Risk Status Pill -->
+          <div class="risk-pill normal" id="topRiskPill">
+            <span class="risk-dot"></span>
+            <span id="topRiskText">NORMAL</span>
+          </div>
+
+          <!-- Song Alert Button -->
+          <button class="action-btn sound-btn" id="headerAudioBtn" onclick="toggleTestAudio()" title="Test funny_munni.mp3 alert sound">
+            <span id="headerSoundIcon">🎵</span>
+            <span id="headerSoundText">Test Song</span>
+          </button>
+
+          <!-- Audio Mute Switch -->
+          <button class="action-btn" id="muteToggleBtn" onclick="toggleMute()" title="Mute/Unmute hardware & browser alert">
+            <span id="muteIcon">🔊</span>
+          </button>
+
+          <!-- Recalibrate Quick Button -->
+          <button class="action-btn" onclick="triggerRecalibrate()" title="Recalibrate eyes">
+            🔄 Calibrate
+          </button>
+        </div>
+      </header>
+
+      <!-- EMERGENCY HIGH-RISK BANNER -->
+      <div class="emergency-banner" id="emergencyBanner" style="display:none;">
+        <div class="emergency-content">
+          <span class="emergency-icon">🚨</span>
+          <div class="emergency-text">
+            <strong>CRITICAL DROWSINESS WARNING DETECTED!</strong>
+            <p>Driver eyes closed for prolonged duration. Alert song is currently playing on vehicle speakers!</p>
+          </div>
+        </div>
+        <button class="btn-dismiss" onclick="dismissEmergency()">Dismiss Alert ✕</button>
+      </div>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 1: LIVE MONITORING COCKPIT
+      ════════════════════════════════════════════════ -->
+      <section class="screen active" id="screen-cockpit">
+        <div class="cockpit-grid">
+
+          <!-- Left: Camera Feed with HUD -->
+          <div class="panel cam-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">📹</span>
+                <h3>Driver Live Camera Feed</h3>
+              </div>
+              <div class="cam-badges">
+                <span class="live-tag"><span class="blink-dot"></span> LIVE 30 FPS</span>
+                <span class="hw-sound-tag" id="hwSoundTag">🔊 Song Armed</span>
+              </div>
+            </div>
+
+            <div class="video-container" id="videoBox">
+              <img id="cameraStream" src="/video_feed" alt="Webcam Stream"/>
+              <div class="no-face-overlay" id="cockpitNoFace" style="display:none;">
+                <span style="font-size:42px;">👤</span>
+                <h4>Searching for Driver Face...</h4>
+                <p>Ensure adequate vehicle lighting and camera facing the driver.</p>
+              </div>
+            </div>
+
+            <!-- Cam Controls Footer -->
+            <div class="cam-footer-bar">
+              <div class="fps-meter">
+                <span>FPS: <strong id="liveFps">0.0</strong></span>
+                <span>Session: <strong id="liveSessionTime">0s</strong></span>
+              </div>
+              <div class="cam-actions">
+                <button class="btn-pill" onclick="triggerRecalibrate()">🔄 Recalibrate</button>
+                <button class="btn-pill accent" onclick="toggleTestAudio()">🎵 Test Song</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Risk & Diagnostics Column -->
+          <div class="cockpit-sidebar">
+
+            <!-- 1. Risk Level Master Card -->
+            <div class="panel risk-card normal" id="riskMasterCard">
+              <div class="risk-card-head">
+                <span class="caption">Driver Condition Level</span>
+                <span class="risk-badge normal" id="riskBadgeText">NORMAL</span>
+              </div>
+
+              <div class="risk-meter-display">
+                <div class="risk-level-icon" id="riskCenterIcon">✅</div>
+                <div class="risk-level-detail">
+                  <h1 id="riskMainHeading">NORMAL</h1>
+                  <p id="riskDescription">Driver attentive &amp; eyes open naturally.</p>
+                </div>
+              </div>
+
+              <!-- 3-Level Stepper -->
+              <div class="stepper-bar">
+                <div class="step-item active" id="step1">
+                  <span class="step-circle">1</span>
+                  <span class="step-lbl">NORMAL</span>
+                </div>
+                <div class="step-divider"></div>
+                <div class="step-item" id="step2">
+                  <span class="step-circle">2</span>
+                  <span class="step-lbl">CAUTION</span>
+                </div>
+                <div class="step-divider"></div>
+                <div class="step-item" id="step3">
+                  <span class="step-circle">3</span>
+                  <span class="step-lbl">HIGH RISK</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Random Forest ML Badge Card -->
+            <div class="panel ml-card">
+              <div class="panel-header compact">
+                <span class="caption">Random Forest Classifier</span>
+                <span class="model-tag">Ensemble (200 Trees)</span>
+              </div>
+              <div class="ml-result-row">
+                <div class="ml-chip alert" id="cockpitMlChip">Alert</div>
+                <div class="ml-meter-box">
+                  <div class="ml-meter-bar">
+                    <div class="ml-meter-fill" id="cockpitMlConfidenceBar" style="width: 50%;"></div>
+                  </div>
+                  <div class="ml-meter-caption">
+                    <span>Confidence Score</span>
+                    <strong id="cockpitMlConfText">95%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Biometric Telemetry Gauges -->
+            <div class="panel metrics-panel">
+              <div class="panel-header compact">
+                <span class="caption">Real-time Biometrics</span>
+              </div>
+
+              <!-- Average EAR -->
+              <div class="gauge-row">
+                <div class="gauge-meta">
+                  <span>Eye Aspect Ratio (EAR)</span>
+                  <strong class="mono" id="valAvgEar">0.000</strong>
+                </div>
+                <div class="gauge-bar-track">
+                  <div class="gauge-bar-fill green" id="barAvgEar" style="width: 0%;"></div>
+                  <div class="threshold-marker-line" id="earThreshLine" style="left: 50%;" title="Personal Threshold"></div>
+                </div>
+                <div class="gauge-sub">
+                  <span>Normal &ge; <span id="valThreshSub">0.25</span></span>
+                  <span class="tag-status" id="earTagStatus">Normal</span>
+                </div>
+              </div>
+
+              <!-- Mouth Aspect Ratio (MAR) -->
+              <div class="gauge-row">
+                <div class="gauge-meta">
+                  <span>Mouth Aspect Ratio (MAR)</span>
+                  <strong class="mono" id="valMar">0.000</strong>
+                </div>
+                <div class="gauge-bar-track">
+                  <div class="gauge-bar-fill amber" id="barMar" style="width: 0%;"></div>
+                </div>
+                <div class="gauge-sub">
+                  <span>Yawn threshold: &gt; 0.62</span>
+                  <span class="tag-status" id="marTagStatus">Mouth Closed</span>
+                </div>
+              </div>
+
+              <!-- Eyes Closed Duration -->
+              <div class="gauge-row">
+                <div class="gauge-meta">
+                  <span>Eyes Closed Duration</span>
+                  <strong class="mono danger" id="valClosedSec">0.0s</strong>
+                </div>
+                <div class="gauge-bar-track">
+                  <div class="gauge-bar-fill red" id="barClosedSec" style="width: 0%;"></div>
+                </div>
+                <div class="gauge-sub">
+                  <span>Alarm triggers: &ge; 0.5s (Instant)</span>
+                  <span class="tag-status danger" id="closedTagStatus">Open</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Song Alert Status Card -->
+            <div class="panel song-live-card">
+              <div class="song-header">
+                <div class="song-meta">
+                  <span class="song-playing-dot" id="songPlayingDot"></span>
+                  <div>
+                    <h4 id="songStatusTitle">Song Alert Ready</h4>
+                    <small>Plays <strong>funny_munni.mp3</strong> automatically on High Risk</small>
+                  </div>
+                </div>
+                <button class="btn-song-action" id="cockpitTestSongBtn" onclick="toggleTestAudio()">
+                  ▶ Play Song
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 2: EYE CALIBRATION STUDIO
+      ════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-calibration">
+        <div class="calibration-view">
+
+          <div class="cal-hero-card">
+            <div class="cal-hero-content">
+              <span class="cal-badge">Advanced Feature 1</span>
+              <h2>Personalized Eye Calibration Studio</h2>
+              <p>
+                Every driver has a unique facial structure and natural eye openness. A hardcoded EAR threshold (e.g., 0.21) causes false alarms for drivers with smaller or hooded eyes.
+                Our calibration protocol collects your relaxed baseline EAR for 5 seconds and calculates a personalized threshold tailored specifically to you.
+              </p>
+            </div>
+            <div class="cal-hero-action">
+              <button class="btn-primary-large" onclick="triggerRecalibrate()">
+                🎯 Start 5-Second Calibration
+              </button>
+            </div>
+          </div>
+
+          <div class="cal-grid">
+            <!-- Calibration Progress Card -->
+            <div class="panel cal-progress-card">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <span class="panel-icon">⏳</span>
+                  <h3>Calibration Progress</h3>
+                </div>
+                <span class="status-chip" id="calStatusChip">Ready</span>
+              </div>
+
+              <div class="cal-circle-container">
+                <div class="cal-circle-val" id="calPercentText">0%</div>
+                <p>Keep your head still and look directly at the webcam naturally.</p>
+              </div>
+
+              <div class="cal-progress-line-track">
+                <div class="cal-progress-line-fill" id="calProgressBar" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Calibration Computed Values -->
+            <div class="panel cal-values-card">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <span class="panel-icon">📐</span>
+                  <h3>Personalized Threshold Calculation</h3>
+                </div>
+              </div>
+
+              <div class="math-formula-box">
+                <code>Personal Threshold = Baseline EAR &times; 0.70 &nbsp;(Clipped: [0.18, 0.30])</code>
+              </div>
+
+              <div class="cal-stats-row">
+                <div class="cal-stat-tile">
+                  <span class="stat-caption">Your Measured Baseline EAR</span>
+                  <span class="stat-number mono" id="calBaselineEarVal">0.000</span>
+                  <small>80th percentile of open-eye samples</small>
+                </div>
+
+                <div class="cal-stat-tile highlight">
+                  <span class="stat-caption">Your Personal EAR Threshold</span>
+                  <span class="stat-number mono green" id="calPersonalThreshVal">0.250</span>
+                  <small>Eyes below this trigger closure timer</small>
+                </div>
+
+                <div class="cal-stat-tile">
+                  <span class="stat-caption">Generic Fixed Threshold</span>
+                  <span class="stat-number mono muted">0.210</span>
+                  <small>Standard benchmark (non-calibrated)</small>
+                </div>
+              </div>
+
+              <div class="cal-explanation-note">
+                <strong>Why this is technically impressive for viva:</strong>
+                This addresses individual anatomical variations across drivers, reducing false alarms and improving the real-world reliability of the computer vision pipeline.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 3: AI LAB & SIMULATOR
+      ════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-simulator">
+        <div class="simulator-view">
+
+          <div class="cal-hero-card ml-hero">
+            <div class="cal-hero-content">
+              <span class="cal-badge accent">Interactive AI/ML Lab</span>
+              <h2>Random Forest Model &amp; Driver Simulator</h2>
+              <p>
+                Test how the trained <strong>Random Forest Classifier</strong> reacts to any combination of facial biometrics.
+                Adjust the sliders below to simulate open eyes, blinks, yawns, and prolonged closure. Watch the ML prediction and 3-level risk classification update dynamically!
+              </p>
+            </div>
+          </div>
+
+          <div class="sim-grid">
+
+            <!-- Controls Panel -->
+            <div class="panel sim-controls-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <span class="panel-icon">🎛️</span>
+                  <h3>Biometric Input Simulator</h3>
+                </div>
+                <button class="btn-sm-ghost" onclick="resetSimulator()">Reset</button>
+              </div>
+
+              <!-- Sliders -->
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="simLeftEar">Left Eye EAR</label>
+                  <span class="mono" id="simValLeftEar">0.350</span>
+                </div>
+                <input type="range" id="simLeftEar" min="0.05" max="0.55" step="0.01" value="0.35" oninput="runSimulation()"/>
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="simRightEar">Right Eye EAR</label>
+                  <span class="mono" id="simValRightEar">0.350</span>
+                </div>
+                <input type="range" id="simRightEar" min="0.05" max="0.55" step="0.01" value="0.35" oninput="runSimulation()"/>
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="simMar">Mouth Opening (MAR)</label>
+                  <span class="mono" id="simValMar">0.050</span>
+                </div>
+                <input type="range" id="simMar" min="0.00" max="1.00" step="0.01" value="0.05" oninput="runSimulation()"/>
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-header">
+                  <label for="simClosedSec">Eye Closure Duration (seconds)</label>
+                  <span class="mono danger" id="simValClosedSec">0.0s</span>
+                </div>
+                <input type="range" id="simClosedSec" min="0.0" max="4.0" step="0.1" value="0.0" oninput="runSimulation()"/>
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="preset-buttons">
+                <span>Quick Scenarios:</span>
+                <button class="btn-preset" onclick="setSimPreset('normal')">Attentive Driver</button>
+                <button class="btn-preset" onclick="setSimPreset('yawn')">Big Yawn</button>
+                <button class="btn-preset" onclick="setSimPreset('blink')">Normal Blink (0.3s)</button>
+                <button class="btn-preset" onclick="setSimPreset('drowsy')">Prolonged Sleep (2.5s)</button>
+              </div>
+            </div>
+
+            <!-- Simulation Output Panel -->
+            <div class="panel sim-output-panel">
+              <div class="panel-header">
+                <div class="panel-title-wrap">
+                  <span class="panel-icon">⚡</span>
+                  <h3>Simulated ML Inference</h3>
+                </div>
+              </div>
+
+              <div class="sim-result-box">
+                <div class="sim-res-badge" id="simRiskBadge">NORMAL</div>
+                <h2 id="simRiskHeading">NORMAL CONDITION</h2>
+                <p id="simRiskDesc">Driver is awake and attentive.</p>
+              </div>
+
+              <div class="sim-meta-grid">
+                <div class="sim-meta-tile">
+                  <span>ML Class Prediction</span>
+                  <strong id="simMlClass">Alert</strong>
+                </div>
+                <div class="sim-meta-tile">
+                  <span>Confidence</span>
+                  <strong id="simMlConf">96%</strong>
+                </div>
+                <div class="sim-meta-tile">
+                  <span>Avg EAR</span>
+                  <strong id="simAvgEar">0.350</strong>
+                </div>
+                <div class="sim-meta-tile">
+                  <span>Song Trigger</span>
+                  <strong id="simAudioStatus">Silent</strong>
+                </div>
+              </div>
+
+              <!-- Model Architecture Info -->
+              <div class="model-spec-card">
+                <h4>Model Architecture Details (Viva Ready)</h4>
+                <ul>
+                  <li><strong>Algorithm:</strong> Random Forest Classifier (Scikit-Learn)</li>
+                  <li><strong>Parameters:</strong> <code>n_estimators=200, class_weight='balanced', min_samples_leaf=2</code></li>
+                  <li><strong>Feature Vector:</strong> <code>[left_ear, right_ear, avg_ear, mar, eye_closed_seconds]</code></li>
+                  <li><strong>Dataset:</strong> 1,164 webcam-recorded samples (805 Alert, 359 Drowsy)</li>
+                </ul>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 4: TELEMETRY & LIVE CHARTS
+      ════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-telemetry">
+        <div class="telemetry-view">
+
+          <div class="telemetry-header-row">
+            <div class="stat-card">
+              <span class="stat-lbl">Active FPS</span>
+              <strong class="stat-val green" id="telemFps">30.0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-lbl">Drowsiness Warnings</span>
+              <strong class="stat-val danger" id="telemTotalAlerts">0</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-lbl">Session Time</span>
+              <strong class="stat-val" id="telemSessionTime">0m 0s</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-lbl">Face Tracking</span>
+              <strong class="stat-val green" id="telemFaceStatus">Active</strong>
+            </div>
+          </div>
+
+          <!-- Real-Time EAR Chart -->
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">📈</span>
+                <h3>Real-Time Eye Aspect Ratio (EAR) Telemetry Stream</h3>
+              </div>
+              <button class="btn-sm-ghost" onclick="clearTelemetryChart()">Clear Stream</button>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="liveEarChart" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Real-Time MAR Chart -->
+          <div class="panel chart-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">🥱</span>
+                <h3>Mouth Aspect Ratio (MAR) Yawn Telemetry Stream</h3>
+              </div>
+            </div>
+            <div class="chart-canvas-wrapper">
+              <canvas id="liveMarChart" height="150"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 5: INCIDENT LOGS & AUDIT
+      ════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-logs">
+        <div class="logs-view">
+
+          <div class="panel logs-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">📋</span>
+                <h3>Recorded Drowsiness Incidents Log</h3>
+              </div>
+              <div class="logs-actions">
+                <button class="btn-pill" onclick="fetchLogsTable()">🔄 Refresh</button>
+                <a href="/api/download_logs" class="btn-pill accent" download="drowsiness_events.csv">📥 Export CSV</a>
+                <button class="btn-pill danger" onclick="clearLogs()">🗑️ Clear Logs</button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="data-table" id="logsTable">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Event Type</th>
+                    <th>ML Prediction</th>
+                    <th>Avg EAR</th>
+                    <th>MAR</th>
+                    <th>Closed (s)</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                  <tr>
+                    <td colspan="6" class="text-center">Loading incident logs...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 6: VIVA & ARCHITECTURE HUB
+      ════════════════════════════════════════════════ -->
+      <section class="screen" id="screen-viva">
+        <div class="viva-view">
+
+          <!-- System Flowchart -->
+          <div class="panel flow-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">🔄</span>
+                <h3>System Architecture &amp; Data Pipeline Flow</h3>
+              </div>
+            </div>
+
+            <div class="flowchart-cards">
+              <div class="flow-step">
+                <span class="step-badge">1</span>
+                <h4>Webcam Stream</h4>
+                <p>OpenCV captures live video frames at 30 FPS from the camera device.</p>
+              </div>
+              <div class="flow-arrow">&rarr;</div>
+
+              <div class="flow-step">
+                <span class="step-badge">2</span>
+                <h4>MediaPipe Face Mesh</h4>
+                <p>Extracts 468 3D facial landmarks with sub-millimeter precision in real-time.</p>
+              </div>
+              <div class="flow-arrow">&rarr;</div>
+
+              <div class="flow-step">
+                <span class="step-badge">3</span>
+                <h4>Biometric Extraction</h4>
+                <p>Computes Eye Aspect Ratio (EAR) and Mouth Aspect Ratio (MAR) via Euclidean distance.</p>
+              </div>
+              <div class="flow-arrow">&rarr;</div>
+
+              <div class="flow-step">
+                <span class="step-badge">4</span>
+                <h4>Personal Calibration</h4>
+                <p>Adapts threshold to individual driver anatomy: <code>threshold = baseline &times; 0.70</code>.</p>
+              </div>
+              <div class="flow-arrow">&rarr;</div>
+
+              <div class="flow-step">
+                <span class="step-badge">5</span>
+                <h4>Random Forest ML</h4>
+                <p>Ensemble model classifies Alert vs Drowsy with probabilistic confidence.</p>
+              </div>
+              <div class="flow-arrow">&rarr;</div>
+
+              <div class="flow-step highlight">
+                <span class="step-badge">6</span>
+                <h4>3-Level Decision &amp; Song</h4>
+                <p>NORMAL &bull; CAUTION &bull; HIGH RISK. Blasts <code>funny_munni.mp3</code> audio on sustained closure!</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Viva Q&A -->
+          <div class="panel viva-qa-panel">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">💡</span>
+                <h3>Top 10 Viva Questions &amp; Model Answers</h3>
+              </div>
+            </div>
+
+            <div class="qa-accordion">
+              <details class="qa-item" open>
+                <summary>Q1. What is Eye Aspect Ratio (EAR) and how is it calculated?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> EAR measures eye openness using 6 landmark coordinates per eye.
+                  <code>EAR = (||p2 - p6|| + ||p3 - p5||) / (2 * ||p1 - p4||)</code> where p1-p4 is horizontal eye width and p2,p6,p3,p5 are vertical distances. When eyes close, EAR approaches 0.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary>Q2. Why did you use a 3-Level Risk classification rather than a simple Alert/Drowsy output?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> Human drowsiness is progressive, not binary. Normal blinks last ~0.1 to 0.4s. A binary system would trigger alarms for every natural blink!
+                  The 3-level system introduces <strong>NORMAL</strong> (no action), <strong>CAUTION</strong> (yawning or partial closure), and <strong>HIGH RISK</strong> (prolonged closure &ge; 2.0s triggers audio song).
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary>Q3. Why was Personalized Eye Calibration implemented?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> Universal thresholds fail for people with naturally smaller, almond-shaped, or hooded eyes. Calibration records the user's natural baseline EAR for 5 seconds and calculates <code>threshold = baseline &times; 0.70</code>.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary>Q4. Why Random Forest instead of a Deep Learning CNN?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> Feature engineering with MediaPipe landmarks reduces video to 5 numerical features. Random Forest runs at &gt;60 FPS on basic CPU without requiring a GPU, prevents overfitting with 200 balanced decision trees, and offers clear feature importance interpretability.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary>Q5. How does the system play the audio song reliably?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> We implemented a <strong>Dual-Audio Engine</strong>: the backend uses Python's <code>pygame.mixer</code> to output directly to the laptop's hardware speakers, while the frontend uses HTML5 Web Audio API with automatic interaction unlocking.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary>Q6. How do you prevent false alarms from camera angle changes?</summary>
+                <div class="qa-ans">
+                  <strong>Answer:</strong> Both left and right eyes are computed separately and averaged. MediaPipe 468-point mesh normalizes landmark depth, and the time-closure counter requires continuous frames below threshold rather than a single noisy frame.
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- Academic Disclaimer -->
+          <div class="disclaimer-card">
+            <strong>⚠️ Academic Prototype Notice:</strong>
+            This project is an educational prototype developed for B.Tech Artificial Intelligence and Machine Learning coursework. It demonstrates real-time computer vision and machine learning principles and is not certified for commercial vehicle safety deployment.
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- HTML5 Audio Fallback -->
+  <audio id="browserAudio" loop preload="auto">
+    <source src="/static/sounds/alert.mp3" type="audio/mpeg"/>
+  </audio>
+
+  <!-- External Script -->
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

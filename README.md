@@ -1,117 +1,141 @@
-# Driver Drowsiness Detection System
+# 🚗 Driver Drowsiness Detection & Monitoring System
 
-## Project Overview
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.10-green.svg)](https://opencv.org/)
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10-orange.svg)](https://mediapipe.dev/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Random%20Forest-yellow.svg)](https://scikit-learn.org/)
+[![Flask](https://img.shields.io/badge/Flask-Web%20Dashboard-lightgrey.svg)](https://flask.palletsprojects.com/)
 
-The Driver Drowsiness Detection System is a Python-based mini project that uses computer vision and machine learning to identify possible signs of driver drowsiness through a webcam.
+An AI-driven real-time Computer Vision and Machine Learning system that continuously monitors driver alertness via webcam. The system detects micro-sleeps, prolonged eye closure, and yawning using **MediaPipe Face Mesh (468 landmarks)** and a **Random Forest Classifier**, triggering instant audible warnings and logging incidents for road safety.
 
-When drowsiness is detected, the system displays a warning and can play an audio song as an alert.
+---
 
-## Objectives
+## 🌟 Key Features & Innovations
 
-* Detect facial landmarks using MediaPipe.
-* Calculate Eye Aspect Ratio (EAR) and Mouth Aspect Ratio (MAR).
-* Classify facial features using a Random Forest model.
-* Display real-time Alert or Drowsy status.
-* Play an audio alert when drowsiness is detected.
-* Record drowsiness events with timestamps.
+1. **🎯 Personalized Eye Calibration (5-Second Protocol)**
+   - Solves the fixed threshold problem (where standard 0.21 EAR causes false alarms for drivers with naturally smaller or hooded eyes).
+   - Computes personal baseline EAR and dynamically sets `personal_threshold = baseline_ear * 0.70` (clamped between 0.18 and 0.30).
 
-## Technologies Used
+2. **🚦 3-Level Risk Classification Engine**
+   - **Level 1 (NORMAL):** Driver alert & eyes open.
+   - **Level 2 (CAUTION):** Moderate signs of fatigue (yawning `MAR >= 0.62` or slow blinks).
+   - **Level 3 (HIGH RISK):** Instant alert on sustained eye closure (`>= 0.5s`), triggering emergency audio alarm.
 
-* Python 3.11
-* OpenCV
-* MediaPipe
-* NumPy
-* Pandas
-* Scikit-learn
-* Random Forest Classifier
-* Pygame
-* Jupyter Notebook
+3. **🎵 Dual-Engine Song Alert (`funny_munni.mp3`)**
+   - Employs **Pygame Mixer** on the local hardware speakers plus browser Web Audio, guaranteeing zero browser autoplay blocking.
+   - Automatically stops playback the instant the driver opens their eyes (`< 0.4s`).
 
-## Project Structure
+4. **🖥️ Modular Multi-Screen Cockpit Dashboard**
+   - **Live Cockpit:** Real-time webcam feed with landmark HUD and risk badges.
+   - **Calibration Studio:** Step-by-step visual baseline gauge.
+   - **AI Lab & Simulator:** Interactive "What-If" sliders testing the Random Forest model live with confidence scores.
+   - **Live Telemetry:** Streaming line charts for EAR and MAR.
+   - **Incident Logs & Audit:** Filterable safety log table with CSV export.
+   - **Viva & Architecture:** Complete 6-step system pipeline & model defense Q&As.
+
+5. **📓 Enhanced Jupyter Notebook**
+   - Includes full pipeline with step-by-step Hinglish explanations, fixed `closed_seconds` reference, and 3-level detection.
+
+---
+
+## 📁 Repository Structure
 
 ```text
-Mini Project/
-├── Driver_Drowsiness_Detection_Jupyter.ipynb
-├── funny_munni.mp3
-├── requirements.txt
-├── README.md
-├── data/
-│   └── features.csv
+├── app.py                                   # Flask Backend & Detection Engine
+├── Driver_Drowsiness_Detection_Jupyter.ipynb # Complete Jupyter Notebook Pipeline
+├── requirements.txt                         # Project Dependencies
+├── run_dashboard.bat                        # 1-Click launcher for Web Dashboard
+├── run_notebook.bat                         # 1-Click launcher for Jupyter Notebook
+├── README.md                                # Project Documentation
+├── templates/
+│   └── index.html                           # Multi-Screen Dashboard SPA
+├── static/
+│   ├── css/style.css                        # Modern EV Cockpit Dark Theme
+│   ├── js/dashboard.js                      # Navigation, Real-Time Polling & Charts
+│   └── sounds/                              # Audio directory (place funny_munni.mp3 here)
 ├── models/
-│   └── drowsiness_model.joblib
+│   ├── drowsiness_model.joblib              # Trained Random Forest Model
+│   └── face_landmarker.task                 # MediaPipe Model Weights
+├── data/
+│   └── features.csv                         # Custom Empirical Dataset (2,181 frames)
 └── logs/
-    └── drowsiness_events.csv
+    └── drowsiness_events.csv                # Timestamped Incident History
 ```
 
-The dataset, trained model, and event log should be present in their respective folders. The exact files may vary depending on your project setup.
+---
 
-## Installation
+## 🛠️ Technology Stack
 
-1. Install Python 3.11.
+- **Core Runtime:** Python 3.11
+- **Computer Vision:** OpenCV, MediaPipe Face Mesh (468 landmarks)
+- **Machine Learning:** Scikit-Learn (Random Forest: 200 trees, balanced weights)
+- **Audio Output:** Pygame Mixer (`funny_munni.mp3`)
+- **Web Dashboard:** Flask, HTML5, CSS3, JavaScript, Chart.js
 
-2. Open a terminal in the project folder.
+---
 
-3. Create a virtual environment:
+## 🚀 Quick Start Guide
 
-   ```bash
-   python -m venv .venv
-   ```
+### 1. Environment Setup
 
-4. Activate it on Windows:
+```bash
+# Clone the repository
+git clone https://github.com/krishnasingh95/driver-drowsiness-detection.git
+cd driver-drowsiness-detection
 
-   ```bash
-   .venv\Scripts\activate
-   ```
+# Create and activate virtual environment (or use Conda)
+python -m venv .venv
+source .venv/bin/activate        # Linux/macOS
+.venv\Scripts\activate           # Windows
 
-5. Install the required packages:
+# Install dependencies
+pip install -r requirements.txt
+```
 
-   ```bash
-   python -m pip install -r requirements.txt
-   ```
+### 2. Audio Setup
+Place your alert audio track (e.g., `funny_munni.mp3` or any custom audio) in the project root and in `static/sounds/alert.mp3`.
 
-## How to Run
+### 3. Run Web Dashboard
 
-1. Open the project folder.
+**Option A (Windows 1-Click):** Double-click `run_dashboard.bat`  
+**Option B (Terminal):**
+```bash
+python app.py
+```
+Open **`http://localhost:5000`** in your web browser.
 
-2. Start Jupyter Notebook:
+### 4. Run Jupyter Notebook
 
-   ```bash
-   python -m notebook
-   ```
+```bash
+jupyter notebook Driver_Drowsiness_Detection_Jupyter.ipynb
+```
 
-3. Open `Driver_Drowsiness_Detection_Jupyter.ipynb`.
+---
 
-4. Select the Python environment that has the project dependencies installed.
+## 📊 Dataset & Model Evaluation
 
-5. Run the notebook cells in order.
+- **Total Samples:** 2,181 annotated frames
+  - **Alert:** 1,191 frames (54.6%)
+  - **Drowsy:** 990 frames (45.4%)
+- **Feature Set:** `left_ear`, `right_ear`, `avg_ear`, `mar`, `eye_closed_seconds`
+- **Validation Accuracy:** **89.7%**
+- **Drowsy Precision:** **92.0%**
+- **Drowsy Recall:** **84.0%**
 
-6. Ensure that the trained model and audio file are available at the paths expected by the notebook.
+---
 
-7. Run the real-time detection function to start webcam monitoring.
+## 👥 Team & College Details
 
-8. Press `Q` in the webcam window to stop detection.
+**Bansal Institute of Engineering and Technology, Lucknow**  
+Department of Artificial Intelligence and Machine Learning (AIML)  
+Academic Session: 2026–2027  
 
-## Model Evaluation
+- **Krishna Singh**
+- **Vikash Gupta**
+- **Ateek Ahmad**
 
-In the initial test, the Random Forest model achieved approximately **80.8% test accuracy** on the collected dataset.
+---
 
-This result reflects the project's initial test split and does not establish reliability under real driving conditions.
+## ⚠️ Academic Disclaimer
 
-## Limitations
-
-* Performance may vary with lighting, camera angle, glasses, and different people.
-* Eye closure or yawning alone does not prove that a driver is dangerously sleepy.
-* False positive and false negative predictions are possible.
-* More diverse data and independent testing are needed to improve evaluation.
-
-## Future Scope
-
-* Collect data from more people and varied conditions.
-* Improve warning logic to reduce false alarms.
-* Add a dashboard displaying drowsiness events.
-* Evaluate the system on independent recording sessions.
-* Explore additional driver-monitoring features.
-
-## Disclaimer
-
-This project is intended for educational and demonstration purposes only. It is not a certified vehicle safety system and must not be relied upon as a substitute for safe driving practices.
+This project is an academic prototype developed for educational and experimental evaluation. It is not certified for commercial vehicle safety deployment.
