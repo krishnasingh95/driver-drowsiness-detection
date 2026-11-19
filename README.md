@@ -124,18 +124,3 @@ jupyter notebook Driver_Drowsiness_Detection_Jupyter.ipynb
 
 ---
 
-## 👥 Team & College Details
-
-**Bansal Institute of Engineering and Technology, Lucknow**  
-Department of Artificial Intelligence and Machine Learning (AIML)  
-Academic Session: 2026–2027  
-
-- **Krishna Singh**
-- **Vikash Gupta**
-- **Ateek Ahmad**
-
----
-
-## ⚠️ Academic Disclaimer
-
-This project is an academic prototype developed for educational and experimental evaluation. It is not certified for commercial vehicle safety deployment.
